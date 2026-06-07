@@ -1,0 +1,28 @@
+/* stylelint-disable unknownAtRules */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@keyframes dropdown {
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-dropdown {
+  animation: dropdown 0.15s ease-out forwards;
+}
+@keyframes accordion {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 500px;
+    opacity: 1;
+  }
+}
+
+.animate-accordion {
+  animation: accordion 0.2s ease-out forwards;
+}
