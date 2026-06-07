@@ -78,6 +78,7 @@ export const products = [
   { id: 290, name: "Fideos Moño Doña Rosa 400g", price: 5800, category: "Dietética", description: "Pasta sin tacc", stock: 10, images: ["/products/Dietetica/fideos-mon.png", "/products/Dietetica/fideos-mon1.png"] },
   { id: 291, name: "Fideos Cabello de Angel 400g", price: 5800, category: "Dietética", description: "Pasta sin tacc", stock: 10, images: ["/products/Dietetica/fideos-cab.png", "/products/Dietetica/fideos-cab1.png"] },
   { id: 292, name: "Fideos Integrales Emilia", price: 3200, category: "Dietética", description: "Fideos integrales", stock: 10, images: ["/products/Dietetica/fideos-emilia.png"] },
+  { id: 314, name: "Tapa de Lasagna Doña Rosa", price: 5800, category: "Dietética", description: "Lasagna", stock: 10, images: ["/products/Dietetica/lasagna.png"] },
   //#endregion
 
   //#region ALMACÉN
