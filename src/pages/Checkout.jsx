@@ -7,6 +7,7 @@ import whatsappLogo from "../assets/whatsapp.svg"
 
 export default function Checkout() {
   const [processing, setProcessing] = useState(false);
+  const [whatsappOpened, setWhatsappOpened] = useState(false);
 
   const {
     cart,
@@ -201,8 +202,7 @@ export default function Checkout() {
   href={whatsappUrl}
   target="_blank"
   rel="noopener noreferrer"
-  onClick={() => setTimeout(() => navigate("/pedido-confirmado"), 500)}
-
+  onClick={() => setWhatsappOpened(true)}
   className="
     w-full
     flex items-center justify-center gap-3
@@ -224,6 +224,15 @@ export default function Checkout() {
   />
   Pedir por WhatsApp
 </a>
+
+{whatsappOpened && (
+  <button
+    onClick={() => { clearCart(); navigate("/pedido-confirmado"); }}
+    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg text-white font-semibold bg-green-700 hover:bg-green-800 transition shadow mt-2"
+  >
+    ✅ Ya envié mi pedido
+  </button>
+)}
 
       <button
         onClick={() => {
