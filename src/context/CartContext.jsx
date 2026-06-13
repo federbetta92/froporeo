@@ -41,7 +41,7 @@ function addToCart(product) {
 function increaseQty(id) {
   setCart(prev =>
     prev.map(p =>
-      p.id === id
+      p.id === id && p.qty < p.stock
         ? { ...p, qty: p.qty + 1 }
         : p
     )
