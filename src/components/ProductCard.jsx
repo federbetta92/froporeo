@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import placeholder from "../assets/placeholder.png";
 import { useCart } from "../context/CartContext";
 
@@ -8,33 +8,53 @@ export default function ProductCard({ product }) {
   // 1. Nombre
   const name = product.name || product.Producto || "Producto sin nombre";
 
-  // 2. Formateo y parseo correcto del precio (soporta "$ 3.200,00", "$ 3,200.00", etc.)
+  // 2. Precio
   const rawPrice = product.price ?? product.Precio ?? 0;
-  const parsePrice = (val) => {
-    if (typeof val === "number") return val;
-    // Eliminamos todo lo que no sea un número para evitar problemas con la coma decimal
-    const cleanStr = String(val).replace(/[^0-9]/g, "");
-    return Number(cleanStr) || 0;
-  };
-  const price = parsePrice(rawPrice);
+  const price = typeof rawPrice === "number" 
+    ? rawPrice 
+    : Number(String(rawPrice).replace(/[^0-9]/g, "")) || 0;
 
   // 3. Stock
   const stock = Number(product.stock ?? product["Stock Actual"] ?? 0);
 
-  // 4. Normalizamos las rutas de imágenes
-  const validImages = product.images?.filter(img => !img.endsWith("/.png")) ?? [];
-  
-  // Si en la planilla tenés la columna "Imagen", la toma; sino intenta con el ID local o el placeholder
-  const initialImage = product.Imagen 
-    ? product.Imagen 
-    : validImages.length 
-      ? validImages[0] 
-      : `/products/${product.id}.png`;
+  // 4. Categoría para armar la subcarpeta
+  const category = product.category || product.Categoría || "";
 
-  const [imageSrc, setImageSrc] = useState(initialImage);
+  // Normalizamos rutas posibles
+  // Intenta: 
+  // 1. Columna "Imagen" si existe en SheetDB
+  // 2. /products/CATEGORIA/ID.png
+  // 3. /products/ID.png
+  const getInitialImagePath = () => {
+    if (product.Imagen) return product.Imagen;
+    if (product.images && product.images.length > 0 && !product.images[0].endsWith("/.png")) {
+      return product.images[0];
+    }
+    if (category) {
+      return `/products/${category}/${product.id}.png`;
+    }
+    return `/products/${product.id}.png`;
+  };
+
+  const [imageSrc, setImageSrc] = useState(getInitialImagePath());
   const [pulse, setPulse] = useState(false);
 
-  // Normalizamos el objeto de producto para el carrito
+  // Si cambia el producto/id, actualizamos la imagen
+  useEffect(() => {
+    setImageSrc(getInitialImagePath());
+  }, [product.id, category]);
+
+  // Manejador de error para probar extensión alternativa (.jpg) antes de ir al placeholder
+  const handleImageError = () => {
+    if (imageSrc.endsWith(".png")) {
+      // Si falló .png, probamos .jpg en la misma carpeta
+      setImageSrc(imageSrc.replace(".png", ".jpg"));
+    } else {
+      // Si también falló o no era .png, mostramos el placeholder
+      setImageSrc(placeholder);
+    }
+  };
+
   const normalizedProduct = {
     ...product,
     id: product.id,
@@ -46,16 +66,12 @@ export default function ProductCard({ product }) {
   const itemInCart = cart.find(p => p.id === product.id);
   const availableStock = stock - (itemInCart?.qty || 0);
 
-  const handleAdd = () => {
-    addToCart(normalizedProduct);
-  };
-
+  const handleAdd = () => addToCart(normalizedProduct);
   const handleIncrease = () => {
     increaseQty(product.id);
     setPulse(true);
     setTimeout(() => setPulse(false), 150);
   };
-
   const handleDecrease = () => {
     decreaseQty(product.id);
     setPulse(true);
@@ -78,7 +94,7 @@ export default function ProductCard({ product }) {
           alt={name}
           className="max-h-full max-w-full object-contain"
           loading="lazy"
-          onError={() => setImageSrc(placeholder)} // Si no existe la imagen en la carpeta, usa el placeholder
+          onError={handleImageError}
         />
       </div>
 
@@ -93,7 +109,6 @@ export default function ProductCard({ product }) {
         {name}
       </h3>
 
-      {/* Precio con formato en pesos ($ 3.200) */}
       <p className="text-gray-600 text-sm mb-2">
         ${price.toLocaleString("es-AR")}
       </p>
@@ -133,25 +148,13 @@ export default function ProductCard({ product }) {
         </button>
       ) : (
         <div className="mt-auto flex items-center justify-center gap-3">
-          <button
-            onClick={handleDecrease}
-            className="px-3 py-1 border rounded"
-          >
+          <button onClick={handleDecrease} className="px-3 py-1 border rounded">
             −
           </button>
-
-          <span
-            className={`font-semibold transition-transform ${
-              pulse ? "scale-110" : "scale-100"
-            }`}
-          >
+          <span className={`font-semibold transition-transform ${pulse ? "scale-110" : "scale-100"}`}>
             {itemInCart.qty}
           </span>
-
-          <button
-            onClick={handleIncrease}
-            className="px-3 py-1 border rounded"
-          >
+          <button onClick={handleIncrease} className="px-3 py-1 border rounded">
             +
           </button>
         </div>
