@@ -5,8 +5,26 @@ import { useCart } from "../context/CartContext";
 export default function ProductCard({ product }) {
   const { addToCart, cart, increaseQty, decreaseQty } = useCart();
 
+  // 1. Normalizamos las propiedades de SheetDB / Google Sheets
+  const name = product.name || product.Producto || "Producto sin nombre";
+  const rawPrice = product.price ?? product.Precio ?? 0;
+  const price = typeof rawPrice === "number" 
+    ? rawPrice 
+    : Number(String(rawPrice).replace(/[^0-9.-]+/g, "")) || 0;
+  
+  const stock = Number(product.stock ?? product["Stock Actual"] ?? 0);
+
+  // Normalizamos el objeto de producto para pasarlo al carrito con campos estandarizados
+  const normalizedProduct = {
+    ...product,
+    id: product.id,
+    name,
+    price,
+    stock
+  };
+
   const itemInCart = cart.find(p => p.id === product.id);
-  const availableStock = product.stock - (itemInCart?.qty || 0);
+  const availableStock = stock - (itemInCart?.qty || 0);
 
   // Filtra rutas inválidas como "/products/.png" y usa placeholder si no hay imágenes válidas
   const validImages = product.images?.filter(img => !img.endsWith("/.png")) ?? [];
@@ -16,7 +34,7 @@ export default function ProductCard({ product }) {
   const [pulse, setPulse] = useState(false);
 
   const handleAdd = () => {
-    addToCart(product);
+    addToCart(normalizedProduct);
   };
 
   const handleIncrease = () => {
@@ -52,7 +70,7 @@ export default function ProductCard({ product }) {
       <div className="relative w-full h-48 mb-3 overflow-hidden rounded-md bg-white flex items-center justify-center">
         <img
           src={images[currentImage]}
-          alt={product.name}
+          alt={name}
           className="max-h-full max-w-full object-contain"
           loading="lazy"
         />
@@ -89,11 +107,11 @@ export default function ProductCard({ product }) {
       )}
 
       <h3 className="font-semibold text-sm sm:text-base mb-1">
-        {product.name}
+        {name}
       </h3>
 
       <p className="text-gray-600 text-sm mb-2">
-        ${product.price.toLocaleString()}
+        ${price.toLocaleString()}
       </p>
 
       {/* STOCK */}
@@ -109,7 +127,7 @@ export default function ProductCard({ product }) {
         </p>
       )}
 
-      {availableStock === 0 && (
+      {availableStock <= 0 && (
         <p className="text-xs text-red-600 font-semibold mb-2">
           Sin stock
         </p>
@@ -119,15 +137,15 @@ export default function ProductCard({ product }) {
       {!itemInCart ? (
         <button
           onClick={handleAdd}
-          disabled={availableStock === 0}
+          disabled={availableStock <= 0}
           className={`
             mt-auto w-full py-2 text-sm sm:text-base rounded-md transition
-            ${availableStock === 0
+            ${availableStock <= 0
               ? "bg-gray-300 text-gray-600 cursor-not-allowed"
               : "bg-brand-accent text-white hover:opacity-90"}
           `}
         >
-          {availableStock === 0 ? "Sin stock" : "Agregar"}
+          {availableStock <= 0 ? "Sin stock" : "Agregar"}
         </button>
       ) : (
         <div className="mt-auto flex items-center justify-center gap-3">
