@@ -5,16 +5,36 @@ import { useCart } from "../context/CartContext";
 export default function ProductCard({ product }) {
   const { addToCart, cart, increaseQty, decreaseQty } = useCart();
 
-  // 1. Normalizamos las propiedades de SheetDB / Google Sheets
+  // 1. Nombre
   const name = product.name || product.Producto || "Producto sin nombre";
+
+  // 2. Formateo y parseo correcto del precio (soporta "$ 3.200,00", "$ 3,200.00", etc.)
   const rawPrice = product.price ?? product.Precio ?? 0;
-  const price = typeof rawPrice === "number" 
-    ? rawPrice 
-    : Number(String(rawPrice).replace(/[^0-9.-]+/g, "")) || 0;
-  
+  const parsePrice = (val) => {
+    if (typeof val === "number") return val;
+    // Eliminamos todo lo que no sea un número para evitar problemas con la coma decimal
+    const cleanStr = String(val).replace(/[^0-9]/g, "");
+    return Number(cleanStr) || 0;
+  };
+  const price = parsePrice(rawPrice);
+
+  // 3. Stock
   const stock = Number(product.stock ?? product["Stock Actual"] ?? 0);
 
-  // Normalizamos el objeto de producto para pasarlo al carrito con campos estandarizados
+  // 4. Normalizamos las rutas de imágenes
+  const validImages = product.images?.filter(img => !img.endsWith("/.png")) ?? [];
+  
+  // Si en la planilla tenés la columna "Imagen", la toma; sino intenta con el ID local o el placeholder
+  const initialImage = product.Imagen 
+    ? product.Imagen 
+    : validImages.length 
+      ? validImages[0] 
+      : `/products/${product.id}.png`;
+
+  const [imageSrc, setImageSrc] = useState(initialImage);
+  const [pulse, setPulse] = useState(false);
+
+  // Normalizamos el objeto de producto para el carrito
   const normalizedProduct = {
     ...product,
     id: product.id,
@@ -25,13 +45,6 @@ export default function ProductCard({ product }) {
 
   const itemInCart = cart.find(p => p.id === product.id);
   const availableStock = stock - (itemInCart?.qty || 0);
-
-  // Filtra rutas inválidas como "/products/.png" y usa placeholder si no hay imágenes válidas
-  const validImages = product.images?.filter(img => !img.endsWith("/.png")) ?? [];
-  const images = validImages.length ? validImages : [placeholder];
-
-  const [currentImage, setCurrentImage] = useState(0);
-  const [pulse, setPulse] = useState(false);
 
   const handleAdd = () => {
     addToCart(normalizedProduct);
@@ -49,14 +62,6 @@ export default function ProductCard({ product }) {
     setTimeout(() => setPulse(false), 150);
   };
 
-  const nextImage = () => {
-    setCurrentImage(i => (i + 1) % images.length);
-  };
-
-  const prevImage = () => {
-    setCurrentImage(i => (i === 0 ? images.length - 1 : i - 1));
-  };
-
   return (
     <div
       className={`
@@ -69,34 +74,12 @@ export default function ProductCard({ product }) {
       {/* IMAGEN */}
       <div className="relative w-full h-48 mb-3 overflow-hidden rounded-md bg-white flex items-center justify-center">
         <img
-          src={images[currentImage]}
+          src={imageSrc}
           alt={name}
           className="max-h-full max-w-full object-contain"
           loading="lazy"
+          onError={() => setImageSrc(placeholder)} // Si no existe la imagen en la carpeta, usa el placeholder
         />
-
-        {images.length > 1 && (
-          <>
-            <button
-              onClick={prevImage}
-              className="absolute top-1/2 left-2 -translate-y-1/2
-                         bg-white/80 hover:scale-110 transition-transform
-                         text-black text-3xl font-bold leading-none
-                         rounded-full w-7 h-7 flex items-center justify-center shadow"
-            >
-              ‹
-            </button>
-            <button
-              onClick={nextImage}
-              className="absolute top-1/2 right-2 -translate-y-1/2
-                         bg-white/80 hover:scale-110 transition-transform
-                         text-black text-3xl font-bold leading-none
-                         rounded-full w-7 h-7 flex items-center justify-center shadow"
-            >
-              ›
-            </button>
-          </>
-        )}
       </div>
 
       {/* INFO */}
@@ -110,8 +93,9 @@ export default function ProductCard({ product }) {
         {name}
       </h3>
 
+      {/* Precio con formato en pesos ($ 3.200) */}
       <p className="text-gray-600 text-sm mb-2">
-        ${price.toLocaleString()}
+        ${price.toLocaleString("es-AR")}
       </p>
 
       {/* STOCK */}
