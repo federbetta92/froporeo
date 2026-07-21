@@ -20,7 +20,10 @@ export function CartProvider({ children }) {
       const existing = prev.find(p => p.id === product.id)
       const qtyInCart = existing ? existing.qty : 0
 
-      if (qtyInCart >= product.stock) {
+      // Compara con el atributo stock del producto
+      const currentStock = Number(product["Stock Actual"] ?? product.stock ?? 0)
+
+      if (qtyInCart >= currentStock) {
         return prev
       }
 
@@ -38,11 +41,15 @@ export function CartProvider({ children }) {
 
   function increaseQty(id) {
     setCart(prev =>
-      prev.map(p =>
-        p.id === id && p.qty < p.stock
-          ? { ...p, qty: p.qty + 1 }
-          : p
-      )
+      prev.map(p => {
+        if (p.id === id) {
+          const currentStock = Number(p["Stock Actual"] ?? p.stock ?? 0)
+          if (p.qty < currentStock) {
+            return { ...p, qty: p.qty + 1 }
+          }
+        }
+        return p
+      })
     )
   }
 
@@ -64,17 +71,14 @@ export function CartProvider({ children }) {
     setCart([])
   }
 
-  // 🚀 NUEVA FUNCIÓN: Impacta el descuento de stock en SheetDB
+  // Descuenta el stock en Google Sheets enviando "Stock Actual"
   async function confirmOrder() {
     try {
-      // Recorremos cada producto del carrito para descontar su stock
       const updatePromises = cart.map(async (item) => {
-        // Calculamos el nuevo stock (asegurando que no baje de 0)
-        const newStock = Math.max(0, Number(item.stock) - item.qty)
+        // Tomamos el stock inicial del producto
+        const initialStock = Number(item["Stock Actual"] ?? item.stock ?? 0)
+        const newStock = Math.max(0, initialStock - item.qty)
 
-        // Hacemos el PATCH a SheetDB buscando por la columna 'id'
-        // IMPORTANTE: Asegurate de que en SheetDB la columna de stock se llame igual
-        // (por ejemplo: 'stock' o 'Stock Actual')
         return fetch(`${SHEETDB_URL}/id/${item.id}`, {
           method: "PATCH",
           headers: {
@@ -83,26 +87,23 @@ export function CartProvider({ children }) {
           },
           body: JSON.stringify({
             data: {
-              stock: newStock // O 'Stock Actual' según cómo nombraste la columna
+              "Stock Actual": newStock
             }
           })
         })
       })
 
-      // Esperamos a que se actualicen todos los ítems en Google Sheets
       await Promise.all(updatePromises)
-
-      // Una vez que impactó correctamente, vaciamos el carrito local
       clearCart()
       return true
     } catch (error) {
-      console.error("Error al descontar stock en SheetDB:", error)
+      console.error("Error al actualizar 'Stock Actual' en SheetDB:", error)
       return false
     }
   }
 
   const total = cart.reduce(
-    (sum, p) => sum + p.price * p.qty,
+    (sum, p) => sum + (Number(p.Precio ?? p.price ?? 0) * p.qty),
     0
   )
 
@@ -115,7 +116,7 @@ export function CartProvider({ children }) {
         decreaseQty,
         removeFromCart,
         clearCart,
-        confirmOrder, // Exportamos la función
+        confirmOrder,
         total
       }}
     >
