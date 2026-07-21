@@ -10,18 +10,26 @@ export function ProductProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   // Función para obtener/refrescar los productos desde SheetDB
-  const refreshProducts = async () => {
-    setLoading(true)
-    try {
-      const res = await fetch(SHEETDB_URL)
-      const data = await res.json()
+const refreshProducts = async () => {
+  setLoading(true)
+  try {
+    const res = await fetch(SHEETDB_URL)
+    const data = await res.json()
+    
+    // Validamos que 'data' sea realmente una lista/array
+    if (Array.isArray(data)) {
       setProducts(data)
-    } catch (error) {
-      console.error("Error al cargar productos desde SheetDB:", error)
-    } finally {
-      setLoading(false)
+    } else {
+      console.error("SheetDB no devolvió un array:", data)
+      setProducts([])
     }
+  } catch (error) {
+    console.error("Error al cargar productos desde SheetDB:", error)
+    setProducts([])
+  } finally {
+    setLoading(false)
   }
+}
 
   // Carga inicial al montar la aplicación
   useEffect(() => {
