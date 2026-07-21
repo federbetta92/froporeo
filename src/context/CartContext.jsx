@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 
 const CartContext = createContext()
 
-// ⚠️ Reemplazá esto con la URL de tu API en SheetDB
+// ⚠️ Reemplazá esto con la URL exacta de tu API de SheetDB
 const SHEETDB_URL = "https://sheetdb.io/api/v1/aqkmgpiukrb2k"
 
 export function CartProvider({ children }) {
@@ -20,7 +20,7 @@ export function CartProvider({ children }) {
       const existing = prev.find(p => p.id === product.id)
       const qtyInCart = existing ? existing.qty : 0
 
-      // Compara con el atributo stock del producto
+      // Mapea con la columna exactas 'Stock Actual' de tu planilla
       const currentStock = Number(product["Stock Actual"] ?? product.stock ?? 0)
 
       if (qtyInCart >= currentStock) {
@@ -71,11 +71,10 @@ export function CartProvider({ children }) {
     setCart([])
   }
 
-  // Descuenta el stock en Google Sheets enviando "Stock Actual"
+  // 🚀 Descuenta el stock de la compra en SheetDB
   async function confirmOrder() {
     try {
       const updatePromises = cart.map(async (item) => {
-        // Tomamos el stock inicial del producto
         const initialStock = Number(item["Stock Actual"] ?? item.stock ?? 0)
         const newStock = Math.max(0, initialStock - item.qty)
 
@@ -102,8 +101,12 @@ export function CartProvider({ children }) {
     }
   }
 
+  // Soporta los nombres 'Precio' o 'price'
   const total = cart.reduce(
-    (sum, p) => sum + (Number(p.Precio ?? p.price ?? 0) * p.qty),
+    (sum, p) => {
+      const price = Number(p["Precio"] ?? p.price ?? 0)
+      return sum + (price * p.qty)
+    },
     0
   )
 
